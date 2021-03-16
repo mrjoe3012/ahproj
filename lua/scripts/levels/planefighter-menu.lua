@@ -20,7 +20,8 @@ local function onLeaderboardClicked(button, mouseButton)
     backClicked = true
     backButton:GetComponent(ComponentType.SpriteRenderer):SetSprite("assets/sprites/button_leaderboard2_147x64.png")
     Engine.Coroutine.YieldForSeconds(0.1)
-    Level.LoadLevel("lua/scripts/levels/leaderboard-planefighter.lua")
+    _G.leaderboard.gameName = "planefighter"
+    Level.LoadLevel("lua/scripts/levels/leaderboard.lua")
 end
 
 function OnLoad()
@@ -63,7 +64,7 @@ function OnLoad()
             end
         end)
     end
-
+    -- this is actually the leaderboard button
     backButton = Actor.new("leaderboard")
     backButton.transform.position = Vector2.new(0, -100)
 

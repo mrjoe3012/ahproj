@@ -4,7 +4,7 @@ windowHeight = 720
 windowTitle = "AH Project Joseph Agrane"
 gameVersion = "1.0.0"
 
-firstLevel = "lua/scripts/levels/games.lua"
+--firstLevel = "lua/scripts/levels/leaderboard.lua"
 firstLevel = "lua/scripts/levels/welcome.lua"
 
 physicsLayerCount = 5

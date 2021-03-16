@@ -19,6 +19,8 @@ end
 
 function OnLoad()
 
+    _G.leaderboard = {}
+
     title = Actor.new("title")
     title.transform.position = Vector2.new(-220, 330)
 
