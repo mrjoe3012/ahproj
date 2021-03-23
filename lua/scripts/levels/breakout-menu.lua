@@ -1,5 +1,5 @@
 local skyBackground
-local backButton, playButton
+local backButton, playButton, leaderboardButton
 local backClicked, leaderboardClicked, playClicked
 
 local function onBackClicked(button, mouseButton)
@@ -13,14 +13,14 @@ local function onPlayClicked(button, mouseButton)
     playClicked = true
     playButton:GetComponent(ComponentType.SpriteRenderer):SetSprite("assets/sprites/button_play2_147x64.png")
     Engine.Coroutine.YieldForSeconds(0.1)
-    Level.LoadLevel("lua/scripts/levels/planefighter.lua")
+    Level.LoadLevel("lua/scripts/levels/breakout.lua")
 end
 
 local function onLeaderboardClicked(button, mouseButton)
     leaderboardClicked = true
     leaderboardButton:GetComponent(ComponentType.SpriteRenderer):SetSprite("assets/sprites/button_leaderboard2_147x64.png")
     Engine.Coroutine.YieldForSeconds(0.1)
-    _G.leaderboard.gameName = "planefighter"
+    _G.leaderboard.gameName = "breakout"
     Level.LoadLevel("lua/scripts/levels/leaderboard.lua")
 end
 
@@ -64,7 +64,6 @@ function OnLoad()
             end
         end)
     end
-    -- this is actually the leaderboard button
     leaderboardButton = Actor.new("leaderboard")
     leaderboardButton.transform.position = Vector2.new(0, -100)
 

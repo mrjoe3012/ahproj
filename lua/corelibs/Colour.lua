@@ -3,6 +3,11 @@ Colour.__index = Colour
 
 function Colour.new(r,g,b,a)
 
+	r = r or 1
+	g = g or 1
+	b = b or 1
+	a = a or 1
+
 	local colour = {}
 	setmetatable(colour, Colour)
 	
