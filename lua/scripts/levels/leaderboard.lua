@@ -5,6 +5,7 @@ local background
 local backButton
 local prevBackgroundColour
 local backButton
+local backClicked = false
 local ROW_SPACING = Vector2.new(0,40)
 local COL_SPACING_1, COL_SPACING_2, COL_SPACING_3 = Vector2.new(85,0), Vector2.new(300, 0), Vector2.new(90,0)
 local COL_START, ROW_START = Vector2.new(-200, 200), Vector2.new(-200, 240)
@@ -14,14 +15,14 @@ local rowTextFields = {}
 local COL_COUNT = 4
 local ROW_COUNT = 12
 
-local function bubbleSort(t, condition)
-    for i=1, #t-1 do
-        for j=1,#t-1-i do
-            if not condition(t[j], t[j+1]) then
-                t[j], t[j+1] = t[j+1], t[j]
-            end
-        end
-    end
+local function bubbleSort(t, cond)
+	for i=1, #t do
+		for j=1, #t-i do
+			if not cond(t[j], t[j+1]) then
+				t[j], t[j+1] = t[j+1], t[j]
+			end
+		end
+	end
 end
 
 local function onBackClicked()
@@ -37,6 +38,10 @@ local function populateLeaderboard(usernameAndScores)
 
     if _G.leaderboard.gameName == "planefighter" then
         fieldName = "planescore"
+    elseif _G.leaderboard.gameName == "breakout" then
+	fieldName = "brickscore"
+    else
+	error(string.format("Bad game name %s", _G.leaderboard.gameName))
     end
 
     local results = Database.Query(string.format("SELECT accounts.username, scores.%s FROM scores, accounts WHERE accounts.username = scores.username",fieldName))
@@ -44,15 +49,18 @@ local function populateLeaderboard(usernameAndScores)
     local scores = {}
 
     for index,resultSet in pairs(results) do
-        scores[resultSet["username"]] = tonumber(resultSet[fieldName])
+        table.insert(scores, {score=tonumber(resultSet[fieldName]), username=resultSet["username"]})
     end
 
-    bubbleSort(scores, function(v1,v2) return v1<v2 end)
+    bubbleSort(scores, function(v1, v2) return v1.score >= v2.score end)
 
     local clientFound = false
 
-    local i = 1
-    for username, score in pairs(scores) do
+    local i
+
+    for j, data in pairs(scores) do
+	i = j
+	local score, username = data.score, data.username
         local texts = rowTextFields[i]
         texts.rank.text = tostring(" "..i)
         texts.username.text = " "..username
@@ -65,7 +73,6 @@ local function populateLeaderboard(usernameAndScores)
             texts.score.colour = Colour.red
         end
 
-        i = i +1
         if (not clientFound and (i==10)) or (clientFound and i==11) then break end
     end
 
@@ -73,7 +80,14 @@ local function populateLeaderboard(usernameAndScores)
 
     local nextIndex = i
 
-    local clientScore = scores[_G.session.username]
+    local clientScore = 0
+
+    for i, data in pairs(scores) do
+	    if data.username == _G.session.username then
+		    clientScore = data.score
+		    break
+            end
+    end
 
     local clientRank = 0
 

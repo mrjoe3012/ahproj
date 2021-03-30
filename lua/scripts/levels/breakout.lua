@@ -1,8 +1,48 @@
+local Database = require("lua/corelibs/Database")
 local prevBackgroundColour
 local ball
 local paddle
-local paddleSpeed  = 250
+local paddleSpeed  = 500
 local bricksToDestroy = {}
+local scoreText
+local score = 0
+local brickValues = {}
+local ballSpeedMultiplier = 1.01
+local gameStart = false
+local startVel = Vector2.new(0,200)
+local maxBallSpeed = 210 
+local timeBonus, currentTimeBonus = 1000, 1000
+local timeLimit = 300 
+local gameOverText
+local gameOver = false
+local finalScoreText
+local brickCount = 0
+
+local function getTotalScore()
+	return math.floor(currentTimeBonus + score)
+end
+
+local function gameOverCoroutine()
+	Engine.Coroutine.YieldForSeconds(3)
+	Level.LoadLevel("lua/scripts/levels/breakout-menu.lua")
+end
+
+local function updateScore()
+
+    local username = _G.session.username
+    local oldScore = _G.session.brickscore
+    if getTotalScore() > oldScore then
+        Database.Query(string.format("UPDATE scores SET brickscore=%d WHERE username='%s'", getTotalScore(), username))
+        _G.session.brickscore = getTotalScore()
+    end
+
+end
+
+local function gameWinCoroutine()
+	updateScore()
+	Engine.Coroutine.YieldForSeconds(3)
+	Level.LoadLevel("lua/scripts/levels/breakout-menu.lua")
+end
 
 local function brickCollide(brick, other)
 
@@ -22,6 +62,13 @@ local function brickCollide(brick, other)
 			otherVel.y = -otherVel.y
 		end
 		table.insert(bricksToDestroy, brick)
+		score = score + brickValues[brick]
+		otherPhys.linearVelocity = otherPhys.linearVelocity*ballSpeedMultiplier
+		if phys.linearVelocity:Magnitude() > maxBallSpeed then
+			phys.linearVelocity = phys.linearVelocity:Normalize()*maxBallSpeed
+		end
+		brickCount = brickCount - 1
+		
 	end
 end
 
@@ -29,9 +76,11 @@ local function ballCollide(ball, other)
 	local phys = ball:GetComponent(ComponentType.PhysicsObject)
 	local paddlePhys = paddle:GetComponent(ComponentType.PhysicsObject)
 	if other.name == "paddle" then
+		phys:SetPosition(Vector2.new(phys:GetPosition().x, paddlePhys:GetPosition().y+20))
 		phys.linearVelocity.y = -phys.linearVelocity.y
 		if paddlePhys.linearVelocity.x ~= 0 then
 			phys.linearVelocity.x = (1*(paddlePhys.linearVelocity.x/math.abs(paddlePhys.linearVelocity.x)))*phys.linearVelocity.y
+
 		else
 			--phys.linearVelocity.x = 0
 		end
@@ -45,8 +94,11 @@ local function spawnBricks(count, rows, startCorner)
 	local rowColours = {
 		Colour.red,
 		Colour.blue,
+		Colour.new(0.5, 0, 0.5),
 		Colour.green
 	}
+	local baseValue = 10
+	local brickValueMultiplier = 2
 	for j=1,rows do
 		for i=1,count do
 			local brick = Actor.new(string.format("brick%d,%d", i,j), "brick")
@@ -61,6 +113,8 @@ local function spawnBricks(count, rows, startCorner)
 			pos.y = pos.y - (rowSpace*(j-1))
 			pos.x = pos.x + (colSpace*(i-1))
 			phys:SetPosition(pos)
+			brickValues[brick] = baseValue+ (baseValue*brickValueMultiplier*(rows-j))
+			brickCount = brickCount + 1
 		end
 	end
 
@@ -72,7 +126,6 @@ function OnLoad()
 	Game.backgroundColour = Colour.new(0,0,0,0)
 
 	ball = Actor.new("ball")
-	ball.transform.position = Vector2.new(0,-250)
 
 	do
 		local renderer = ball:AddComponent(ComponentType.EllipseRenderer)
@@ -81,7 +134,7 @@ function OnLoad()
 		local phys = ball:AddComponent(ComponentType.PhysicsObject)
 		phys:SetCollider(ColliderType.Circle, 10, false, false)
 		phys.drawCollider = true
-		phys.linearVelocity = Vector2.new(100,100) -- TODO make this linear for the final game
+		phys:SetPosition(Vector2.new(0,-280))
 		phys.OnCollide:Bind(ballCollide)
 	end
 
@@ -89,7 +142,7 @@ function OnLoad()
 
 	do
 		local renderer = paddle:AddComponent(ComponentType.RectRenderer)
-		renderer.colour = Colour.white -- TODO change this to a paddle
+		renderer.colour = Colour.white
 		renderer.width, renderer.height = 200,20
 		local phys = paddle:AddComponent(ComponentType.PhysicsObject)
 		phys:SetPosition(Vector2.new(0,-300))
@@ -97,7 +150,38 @@ function OnLoad()
 		phys.drawCollider = true
 	end
 
-	spawnBricks(5,2,Vector2.new(-300,300))
+	scoreText = Actor.new("scoreText")
+    	scoreText.transform.position = Vector2.new(-550, 350)
+
+	do
+		local renderer = scoreText:AddComponent(ComponentType.TextRenderer)
+		renderer.priority = 100
+	end
+
+	gameOverText = Actor.new("gameOverText")
+	gameOverText.transform.position = Vector2.new(-225,0)
+
+	do
+		local renderer = gameOverText:AddComponent(ComponentType.TextRenderer)
+		renderer.text = "GAME OVER"
+		renderer.colour = Colour.white
+		renderer.priority = 100
+		renderer.fontSize = 80 
+		renderer.enabled = false
+	end
+
+	finalScoreText = Actor.new("finalScoreText")
+	finalScoreText.transform.position = Vector2.new(-300, 0)
+
+	do	
+		local renderer = finalScoreText:AddComponent(ComponentType.TextRenderer)
+		renderer.colour = Colour.white
+		renderer.priority = 100
+		renderer.fontSize = 65 
+		renderer.enabled = false
+	end
+
+	spawnBricks(10,4,Vector2.new(-500,250))
 
 end
 
@@ -108,17 +192,23 @@ local function ballWallCollisionCheck()
 	local pos = phys:GetPosition()
 	local vel = phys.linearVelocity
 
-	if pos.x > (1200/2)-(rend.radii.x/2) or pos.x < (-1200/2)+(rend.radii.x/2) then
+	if pos.x > (1200/2)-(rend.radii.x/2) then
 		vel.x = -vel.x
-		pos.x = pos.x - (1*(vel.x/math.abs(vel.x)))
+		pos.x = (1200/2)-(rend.radii.x/2)
+	elseif  pos.x < (-1200/2)+(rend.radii.x/2) then
+		vel.x = -vel.x
+		pos.x = (-1200/2)+(rend.radii.x/2)
 	end
 	if pos.y > (720/2)-(rend.radii.x/2) then
 		vel.y = -vel.y
-		pos.y = pos.y - (1*(vel.y/math.abs(vel.y)))
+		pos.y = (720/2)-(rend.radii.x/2)
 	end
 	if pos.y < (-720/2)+(rend.radii.x/2) then
-		error("game over") --TODO back to menu and update leaderboard
+		gameOver = true
+		gameOverText:GetComponent(ComponentType.TextRenderer).enabled = true
+		Engine.Coroutine.new(gameOverCoroutine)
 	end
+	phys:SetPosition(pos)
 end
 
 local function inputLoop()
@@ -141,12 +231,36 @@ local function inputLoop()
 end
 
 function Update()
+	if gameOver then
+		return
+	end
 	inputLoop()
 	ballWallCollisionCheck()
 	for _,brick in pairs(bricksToDestroy) do
 		brick:Destroy()
 	end
 	bricksToDestroy = {}
+
+	if brickCount <= 0 then
+		gameOver = true
+		finalScoreText:GetComponent(ComponentType.TextRenderer).text = string.format("Final Score: %d", getTotalScore())
+		finalScoreText:GetComponent(ComponentType.TextRenderer).enabled = true
+		Engine.Coroutine.new(gameWinCoroutine)
+	end
+
+	local scoreTextRenderer = scoreText:GetComponent(ComponentType.TextRenderer)
+	scoreTextRenderer.text = tostring(getTotalScore())
+	scoreTextRenderer.colour = Colour.white
+
+	if not gameStart and paddle:GetComponent(ComponentType.PhysicsObject).linearVelocity:Magnitude() > 0 then
+		gameStart = true
+		ball:GetComponent(ComponentType.PhysicsObject).linearVelocity = startVel
+	end
+
+	if gameStart then
+		currentTimeBonus = math.max(0,currentTimeBonus - (timeBonus/timeLimit)*Time.delta)
+	end
+
 end
 
 function OnUnload()
