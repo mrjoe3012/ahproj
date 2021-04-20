@@ -49,24 +49,24 @@ function OnLoad()
         spriteRenderer.scale = Vector2.new(1.5,1.8)
     end
 
-    wordsearch = Actor.new("wordsearch")
-    wordsearch.transform.position = Vector2.new()
+    --wordsearch = Actor.new("wordsearch")
+    --wordsearch.transform.position = Vector2.new()
 
-    do
-        local spriteRenderer = wordsearch:AddComponent(ComponentType.SpriteRenderer)
-        spriteRenderer:SetSprite("assets/sprites/button_wordsearch1_147x64.png")
-        local button = wordsearch:AddComponent(ComponentType.Button)
-        button.width = 147
-        button.height = 64
-        button.OnClick:Bind(function(button, mouseButton)
-            if mouseButton == 0 and not wordsearchClicked then
-                Engine.Coroutine.new(onWordsearchClick)
-            end
-        end)
-    end
+    --do
+    --    local spriteRenderer = wordsearch:AddComponent(ComponentType.SpriteRenderer)
+    --    spriteRenderer:SetSprite("assets/sprites/button_wordsearch1_147x64.png")
+    --    local button = wordsearch:AddComponent(ComponentType.Button)
+    --    button.width = 147
+    --    button.height = 64
+    --    button.OnClick:Bind(function(button, mouseButton)
+    --        if mouseButton == 0 and not wordsearchClicked then
+    --            Engine.Coroutine.new(onWordsearchClick)
+    --        end
+    --    end)
+    --end
 
     breakout = Actor.new("breakout")
-    breakout.transform.position = Vector2.new(200)
+    breakout.transform.position = Vector2.new(100)
 
     do
         local spriteRenderer = breakout:AddComponent(ComponentType.SpriteRenderer)
@@ -82,7 +82,7 @@ function OnLoad()
     end
 
     planefighter = Actor.new("planefighter")
-    planefighter.transform.position = Vector2.new(-200)
+    planefighter.transform.position = Vector2.new(-100)
 
     do
         local spriteRenderer = planefighter:AddComponent(ComponentType.SpriteRenderer)

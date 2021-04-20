@@ -22,11 +22,11 @@ function OnLoad()
     _G.leaderboard = {}
 
     title = Actor.new("title")
-    title.transform.position = Vector2.new(-220, 330)
+    title.transform.position = Vector2.new(-100, 280)
 
     do
         local textRenderer = title:AddComponent(ComponentType.TextRenderer)
-        textRenderer.text = "3 in 1 Mini Games"
+        textRenderer.text = "Welcome"
     end
 
     signup = Actor.new("signup")
