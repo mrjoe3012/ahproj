@@ -34,15 +34,26 @@ end
 
 local function populateLeaderboard(usernameAndScores)
 
-    local fieldName = ""
+    local prettyPrintNames = {
+	["planefighter"] = "Plane Fighter",
+	["breakout"] = "Breakout",
+    }
 
-    if _G.leaderboard.gameName == "planefighter" then
-        fieldName = "planescore"
-    elseif _G.leaderboard.gameName == "breakout" then
-	fieldName = "brickscore"
-    else
+    local fieldNames = {
+	["planefighter"] = "planescore",
+	["breakout"] = "brickscore"
+   }
+
+    local gameName = _G.leaderboard.gameName
+
+    if not gameName or not fieldNames[gameName] then
 	error(string.format("Bad game name %s", _G.leaderboard.gameName))
-    end
+    end    
+
+    local fieldName = fieldNames[gameName]
+    local prettyName = prettyPrintNames[gameName]
+
+    title:GetComponent(ComponentType.TextRenderer).text = prettyName.." Leaderboard"
 
     local results = Database.Query(string.format("SELECT accounts.username, scores.%s FROM scores, accounts WHERE accounts.username = scores.username",fieldName))
 
@@ -121,11 +132,13 @@ function OnLoad()
 
     title = Actor.new("title")
 
-    title.transform.position = Vector2.new(10,300)
+    title.transform.position = Vector2.new(-200,300)
 
     do
-        local spriteRenderer = title:AddComponent(ComponentType.SpriteRenderer)
-        spriteRenderer:SetSprite("assets/sprites/leaderboardtitle1_325x78.png")
+        --local spriteRenderer = title:AddComponent(ComponentType.SpriteRenderer)
+        --spriteRenderer:SetSprite("assets/sprites/leaderboardtitle1_325x78.png")
+	local textRenderer = title:AddComponent(ComponentType.TextRenderer)
+	textRenderer.fontSize = 40
     end
 
     positionHeading = Actor.new("positionHeading")
